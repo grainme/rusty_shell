@@ -29,7 +29,7 @@ fn get_file(cmd_needed: &str, paths_links: &str) -> Option<String> {
             // check if file path dadada return some or none!
             let cmd_name: &str = file_path.file_name().take().unwrap().to_str().unwrap();
             if cmd_needed == cmd_name {
-                Some(format!("{cmd_needed} is {}", file_path.display()));
+                return Some(format!("{cmd_needed} is {}", file_path.display()));
             }
         }
     }
