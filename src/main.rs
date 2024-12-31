@@ -68,7 +68,12 @@ fn main() {
                 }
             }
             _ => {
-                Command::new(cmd).args(option.split(" ")).status().expect("failed to run the command");
+                match Command::new(cmd).args(option.split(" ")).status() {
+                    Ok(_) => {} ,
+                    Err(_) => {
+                        println!("{cmd}: command not found");
+                    },
+                }
             },
         }
     }
