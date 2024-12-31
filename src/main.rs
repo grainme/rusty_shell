@@ -2,7 +2,7 @@ use std::{env, fs};
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
-
+#[allow(dead_code)]
 fn get_type_response(arg: &str) {
     if !["echo", "type", "exit"].contains(&arg) {
         println!("{arg}: not found");
@@ -21,7 +21,6 @@ fn yell(arg: &str) {
 fn get_file(cmd_needed: &str, paths_links: &str) -> Option<String> {
     let dirs_paths:Vec<&str> = paths_links.split(":").collect();
     for &dir_path in dirs_paths.iter() {
-        println!("{dir_path}");
         // you need to fetch the files from `dirs`
         let files = fs::read_dir(dir_path).unwrap();
         for file_path in files {
@@ -72,15 +71,3 @@ fn main() {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_file() {
-    }
-
-}
-
-
