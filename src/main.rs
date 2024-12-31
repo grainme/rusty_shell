@@ -1,5 +1,4 @@
-use core::panic;
-use std::{env, fs, option, path::{Path, PathBuf}};
+use std::{env, option, path::Path, process::Command};
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
@@ -25,13 +24,12 @@ fn find_in_path(cmd: &str) -> Option<String> {
     for dir in paths.split(":") {
         let file_path = Path::new(dir).join(cmd);
         if file_path.is_file() {
-            if let Some(path) = file_path.to_str() {
-                return Some(format!("{cmd} is {path}"));
-            }
+            return file_path.to_str().map(String::from)
         }
     }
     None
 }
+
 
 
 fn main() {
@@ -69,7 +67,9 @@ fn main() {
                     }
                 }
             }
-            _ => println!("{}: command not found", cmd),
+            _ => {
+                Command::new(cmd).args(option.split(" ")).status().expect("failed to run the command");
+            },
         }
     }
 }
