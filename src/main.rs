@@ -19,12 +19,17 @@ fn main() {
         // dbg!(&input);
         let &cmd = input.first().unwrap();
 
-        if cmd == "exit" {
+        match cmd {
+            "exit" => {
             std::process::exit(input.get(1)
                 .unwrap()
                 .parse()
                 .expect("failed to parse exit code"))
+             },
+            "echo" => {
+                println!("{}", &input[1..].join(" "));
+            },
+            _ => println!("{}: command not found", cmd),
         }
-        println!("{}: command not found", cmd);
     }
 }
