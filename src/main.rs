@@ -53,12 +53,6 @@ fn main() {
         let &cmd = input.first().unwrap();
         let option = &input[1..].join(" ");
         match cmd {
-            "type" => {
-                match get_file(option, &env::var("PATH").unwrap()) {
-                    Some(res) => println!("{}", res),
-                    None => yell(option), 
-                }
-            },
             "exit" => {
                 std::process::exit(option
                     .trim()
@@ -66,7 +60,13 @@ fn main() {
                     .expect("failed to parse exit code"))}, // normally i should handle this!
             "echo" => {
                 println!("{}", option);
-            },
+                },
+            "type" => {
+                match get_file(option, &env::var("PATH").unwrap()) {
+                    Some(res) => println!("{}", res),
+                    None => yell(option), 
+                }
+            }
             _ => println!("{}: command not found", cmd),
         }
     }
