@@ -1,3 +1,4 @@
+use std::{env, fs};
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
@@ -10,8 +11,33 @@ fn get_type_response(arg: &str) {
     }
 }
 
+fn yell(arg: &str) {
+    println!("{}: not found", arg);
+}
+
+#[allow(unused_variables)]
+#[allow(dead_code)]
+// takes a file and look it up within the dirs!
+fn get_file(cmd_needed: &str, paths_links: &str) -> Option<String> {
+    let dirs_paths:Vec<&str> = paths_links.split(":").collect();
+    for &dir_path in dirs_paths.iter() {
+        println!("{dir_path}");
+        // you need to fetch the files from `dirs`
+        let files = fs::read_dir(dir_path).unwrap();
+        for file_path in files {
+            let file_path = file_path.unwrap().path();
+            // check if file path dadada return some or none!
+            let cmd_name: &str = file_path.file_name().take().unwrap().to_str().unwrap();
+            if cmd_needed == cmd_name {
+                Some(format!("{cmd_needed} is {}", file_path.display()));
+            }
+        }
+    }
+    None
+}
+
+
 fn main() {
-    // Wait for user input
     loop {
         print!("$ ");
         io::stdout().flush().unwrap();
@@ -27,14 +53,18 @@ fn main() {
         // dbg!(&input);
         let &cmd = input.first().unwrap();
         let option = &input[1..].join(" ");
-
         match cmd {
-            "type" => get_type_response(option),
+            "type" => {
+                match get_file(option, &env::var("PATH").unwrap()) {
+                    Some(res) => println!("{}", res),
+                    None => yell(option), 
+                }
+            },
             "exit" => {
-                std::process::exit(input.get(1)
-                    .unwrap()
+                std::process::exit(option
+                    .trim()
                     .parse()
-                    .expect("failed to parse exit code"))},
+                    .expect("failed to parse exit code"))}, // normally i should handle this!
             "echo" => {
                 println!("{}", option);
             },
@@ -42,3 +72,15 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_file() {
+    }
+
+}
+
+
