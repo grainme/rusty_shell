@@ -62,7 +62,7 @@ fn main() {
                 println!("{}", option);
                 },
             "type" => {
-                if option == "echo" || option == "exit" {
+                if option == "echo" || option == "exit" || option == "type" {
                     println!("{} is a shell builtin", option);
                 } else {
                     match get_file(option, &env::var("PATH").unwrap()) {
