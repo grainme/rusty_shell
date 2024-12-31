@@ -1,4 +1,4 @@
-use std::{env, option, path::Path, process::Command};
+use std::{env, path::Path, process::Command};
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
@@ -30,6 +30,11 @@ fn find_in_path(cmd: &str) -> Option<String> {
     None
 }
 
+fn pwd() -> io::Result<()> {
+    let current_dir = std::env::current_dir()?;
+    println!("{}", current_dir.display());
+    Ok(())
+}
 
 
 fn main() {
@@ -49,6 +54,12 @@ fn main() {
         let &cmd = input.first().unwrap();
         let option: &str = &input[1..].join(" ");
         match cmd {
+            "pwd" =>  {
+                match pwd() {
+                    Ok(_) => {},
+                    Err(_) => println!("pwd panics"),
+                }
+            },
             "exit" => {
                 std::process::exit(option
                     .trim()
