@@ -1,5 +1,5 @@
 use core::panic;
-use std::{env, fs, option};
+use std::{env, fs, option, path::{Path, PathBuf}};
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
@@ -19,22 +19,14 @@ fn yell(arg: &str) {
 #[allow(unused_variables)]
 #[allow(dead_code)]
 // takes a file and look it up within the dirs!
-fn get_file(cmd_needed: &str) -> Option<String> {
-    let path_links = match env::var("PATH") {
-        Ok(path) => path,
-        Err(_) => panic!("failed to get a PATH"),
-    };
+fn find_in_path(cmd: &str) -> Option<String> {
+    let paths = env::var("PATH").ok()?;
 
-    let dirs_paths:Vec<&str> = path_links.split(":").collect();
-    for &dir_path in dirs_paths.iter() {
-        // you need to fetch the files from `dirs`
-        let files = fs::read_dir(dir_path).unwrap();
-        for file_path in files {
-            let file_path = file_path.unwrap().path();
-            // check if file path dadada return some or none!
-            let cmd_name: &str = file_path.file_name().take().unwrap().to_str().unwrap();
-            if cmd_needed == cmd_name {
-                return Some(format!("{cmd_needed} is {}", file_path.display()));
+    for dir in paths.split(":") {
+        let file_path = Path::new(dir).join(cmd);
+        if file_path.is_file() {
+            if let Some(path) = file_path.to_str() {
+                return Some(format!("{cmd} is {path}"));
             }
         }
     }
@@ -71,7 +63,7 @@ fn main() {
                 if option == "echo" || option == "exit" || option == "type" {
                     println!("{} is a shell builtin", option);
                 } else {
-                    match get_file(option) {
+                    match find_in_path(option) {
                         Some(res) => println!("{}", res),
                         None => yell(option), 
                     }
