@@ -1,3 +1,4 @@
+use core::panic;
 use std::{env, fs, option};
 #[allow(unused_imports)]
 use std::io::{self, Write};
@@ -18,8 +19,13 @@ fn yell(arg: &str) {
 #[allow(unused_variables)]
 #[allow(dead_code)]
 // takes a file and look it up within the dirs!
-fn get_file(cmd_needed: &str, paths_links: &str) -> Option<String> {
-    let dirs_paths:Vec<&str> = paths_links.split(":").collect();
+fn get_file(cmd_needed: &str) -> Option<String> {
+    let path_links = match env::var("PATH") {
+        Ok(path) => path,
+        Err(_) => panic!("failed to get a PATH"),
+    };
+
+    let dirs_paths:Vec<&str> = path_links.split(":").collect();
     for &dir_path in dirs_paths.iter() {
         // you need to fetch the files from `dirs`
         let files = fs::read_dir(dir_path).unwrap();
@@ -65,7 +71,7 @@ fn main() {
                 if option == "echo" || option == "exit" || option == "type" {
                     println!("{} is a shell builtin", option);
                 } else {
-                    match get_file(option, &env::var("PATH").unwrap()) {
+                    match get_file(option) {
                         Some(res) => println!("{}", res),
                         None => yell(option), 
                     }
