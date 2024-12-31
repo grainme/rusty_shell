@@ -69,7 +69,7 @@ fn main() {
                 println!("{}", option);
                 },
             "type" => {
-                if option == "echo" || option == "exit" || option == "type" {
+                if option == "echo" || option == "exit" || option == "type" || option == "pwd" {
                     println!("{} is a shell builtin", option);
                 } else {
                     match find_in_path(option) {
