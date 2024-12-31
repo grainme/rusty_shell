@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{env, fs, option};
 #[allow(unused_imports)]
 use std::io::{self, Write};
 
@@ -51,7 +51,7 @@ fn main() {
         
         // dbg!(&input);
         let &cmd = input.first().unwrap();
-        let option = &input[1..].join(" ");
+        let option: &str = &input[1..].join(" ");
         match cmd {
             "exit" => {
                 std::process::exit(option
@@ -62,9 +62,13 @@ fn main() {
                 println!("{}", option);
                 },
             "type" => {
-                match get_file(option, &env::var("PATH").unwrap()) {
-                    Some(res) => println!("{}", res),
-                    None => yell(option), 
+                if option == "echo" || option == "exit" {
+                    println!("{} is a shell builtin", option);
+                } else {
+                    match get_file(option, &env::var("PATH").unwrap()) {
+                        Some(res) => println!("{}", res),
+                        None => yell(option), 
+                    }
                 }
             }
             _ => println!("{}: command not found", cmd),
