@@ -1,6 +1,6 @@
 #[allow(unused_imports)]
 use std::io::{self, Write};
-use std::{env, path::Path, process::Command};
+use std::{env, path::{self, Path}, process::Command};
 
 use anyhow::Result;
 
@@ -39,7 +39,14 @@ fn pwd() -> io::Result<()> {
 }
 
 fn change_dir(path: &str) -> Result<(), &str> {
-    let root = Path::new(path);
+    let home;
+    let root = match path {
+        "~" => {
+            home = env::var("HOME").unwrap();
+            Path::new(&home)
+        },
+        _ => Path::new(path),
+    };
     let root = env::set_current_dir(&root).is_ok();
     if !root {
         return Err(path);
