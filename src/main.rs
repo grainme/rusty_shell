@@ -42,7 +42,7 @@ fn change_dir(path: &str) -> Result<(), &str> {
     let root = Path::new(path);
     let root = env::set_current_dir(&root).is_ok();
     if !root {
-        return Err("cd: {path}: No such file or directory");
+        return Err(path);
     }
     Ok(())
 }
@@ -78,7 +78,7 @@ fn main() {
             "cd" => {
                 match change_dir(&args.join("")) {
                     Ok(_) => {},
-                    Err(e) => println!("{}", e),
+                    Err(e) => println!("cd: {}: No such file or directory", e),
                 }
             }
             "type" => {
