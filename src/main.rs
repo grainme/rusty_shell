@@ -42,7 +42,7 @@ fn change_dir(path: &str) -> Result<(), &str> {
     let root = Path::new(path);
     let root = env::set_current_dir(&root).is_ok();
     if !root {
-        return Err("Failed to change directory!");
+        return Err("cd: {path}: No such file or directory");
     }
     Ok(())
 }
