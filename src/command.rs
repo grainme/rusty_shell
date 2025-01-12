@@ -5,45 +5,16 @@
 //!
 //! @author: @grainme
 
-use crate::{
-    builtins::{cd, pwd},
-    environment::find_in_path,
-    error::yell,
-};
+use crate::{builtins::Shell, environment::find_in_path};
 use std::{io::*, process::Command};
-
-fn handle_pwd() {
-    match pwd() {
-        Ok(_) => {}
-        Err(_) => println!("pwd panics"),
-    };
-}
 
 fn handle_exit(args: &Vec<&str>) {
     let code = args.join(" ").trim().parse().unwrap_or(0);
     std::process::exit(code);
 }
 
-fn handle_type(args: &Vec<&str>) {
-    let option = args.join(" ");
-    if option == "echo" || option == "exit" || option == "type" || option == "pwd" {
-        println!("{} is a shell builtin", option);
-    } else {
-        match find_in_path(&option) {
-            Some(res) => println!("{}", res),
-            None => yell(&option),
-        }
-    }
-}
-
-fn handle_cd(args: &Vec<&str>) {
-    match cd(&args.join("")) {
-        Ok(_) => {}
-        Err(e) => println!("cd: {}: No such file or directory", e),
-    }
-}
-
 pub fn run() {
+    let mut shell: Shell = Shell::new().unwrap();
     loop {
         print!("$ ");
         stdout().flush().unwrap();
@@ -60,11 +31,11 @@ pub fn run() {
         let args: Vec<&str> = input[1..].to_vec();
 
         match cmd {
-            "pwd" => handle_pwd(),
+            "pwd" => shell.pwd(),
             "exit" => handle_exit(&args),
             "echo" => println!("{}", args.join(" ")),
-            "cd" => handle_cd(&args),
-            "type" => handle_type(&args),
+            "cd" => shell.cd(&args.join("")).unwrap(),
+            "type" => shell.type_s(&args),
             _ => match find_in_path(cmd) {
                 Some(path) => {
                     if Command::new(path).args(&args).status().is_err() {
