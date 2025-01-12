@@ -8,6 +8,7 @@
 use crate::{environment::find_in_path, error::ShellError};
 use std::{collections::HashSet, env, path::PathBuf};
 
+/// todo!("remove commands from the struct")
 pub struct Shell {
     /// current_dir is used to cache the working
     /// directory instead of having multiple OS calls.
