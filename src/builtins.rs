@@ -6,43 +6,62 @@
 //! @author: @grainme
 
 use crate::{environment::find_in_path, error::ShellError};
-use std::{collections::HashSet, env, path::PathBuf};
+use std::{env, path::PathBuf};
 
-/// todo!("remove commands from the struct")
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[non_exhaustive]
+pub enum ShellCommand {
+    Pwd,
+    Cd,
+    Ls,
+    Echo,
+    Cat,
+    Type,
+}
+
+impl ShellCommand {
+    #[allow(dead_code)]
+    pub fn as_str(&self) -> &str {
+        match self {
+            ShellCommand::Pwd => "pwd",
+            ShellCommand::Cd => "cd",
+            ShellCommand::Cat => "cat",
+            ShellCommand::Ls => "ls",
+            ShellCommand::Type => "type",
+            ShellCommand::Echo => "echo",
+        }
+    }
+
+    pub fn from_str(command: &str) -> Option<ShellCommand> {
+        match command {
+            "pwd" => Some(ShellCommand::Pwd),
+            "cd" => Some(ShellCommand::Cd),
+            "cat" => Some(ShellCommand::Cat),
+            "ls" => Some(ShellCommand::Ls),
+            "type" => Some(ShellCommand::Type),
+            "echo" => Some(ShellCommand::Echo),
+            _ => None,
+        }
+    }
+}
+
 pub struct Shell {
     /// current_dir is used to cache the working
     /// directory instead of having multiple OS calls.
     current_dir: PathBuf,
-    commands: HashSet<&'static str>,
 }
 
 impl Shell {
     pub fn new() -> Result<Shell, ShellError> {
-        let commands_set: HashSet<&'static str> =
-            HashSet::from_iter(vec!["pwd", "cd", "ls", "echo"]);
         Ok(Shell {
             current_dir: env::current_dir()?,
-            commands: commands_set,
         })
     }
 
-    ///
-    /// we're calling env::current_dir once within new
-    /// in get_current_dir we're just fetching it from the
-    /// Shell instance.
-    ///
-    pub fn get_current_dir(&self) -> &PathBuf {
-        &self.current_dir
+    pub fn pwd(&self) -> Result<&PathBuf, ShellError> {
+        Ok(&self.current_dir)
     }
 
-    pub fn pwd(&self) {
-        println!("{}", self.get_current_dir().display());
-    }
-
-    ///
-    /// case where cd would fail?
-    ///     - not found path ? - "cd: No such file or directory : path"
-    ///
     pub fn cd(&mut self, path: &str) -> Result<(), ShellError> {
         let path = PathBuf::from(path);
         if path.is_dir() {
@@ -54,26 +73,14 @@ impl Shell {
         Ok(())
     }
 
-    ///
-    /// type is used to find out whether command is builtin
-    /// or external binary.
-    ///
-    /// Usage:
-    /// ```
-    /// type echo
-    /// echo is a shell builtin
-    /// ```
-    ///
-    pub fn type_s(&self, args: &Vec<&str>) {
-        let binding = args.join(" ");
-        let option: &str = binding.as_str();
-
-        if self.commands.contains(&option) {
-            println!("{} is a shell builtin", option);
+    pub fn get_type(&self, option: &str) -> Result<String, ShellError> {
+        // NotFound feels like an error, maybe todo!("re-implementation needed")
+        if ShellCommand::from_str(option).is_some() {
+            Ok(format!("{} is a shell builtin", option))
         } else {
             match find_in_path(&option) {
-                Some(res) => println!("{} is {}", option, res),
-                None => println!("{}: not found", option),
+                Some(res) => Ok(format!("{} is {}", option, res)),
+                None => Err(ShellError::FileNotFound),
             }
         }
     }
