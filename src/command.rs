@@ -1,49 +1,154 @@
-//! Command execution and routing
-//!
-//! tasks:
-//!     - I need to make this code better. (120125)
+//! Command Execution & Routing
 //!
 //! @author: @grainme
+//!
+//! A module implementing todo!("add stuff here")
+//!
+//! # Features
+//!
+//! # Usage Examples
+//!
 
-use crate::{builtins::Shell, environment::find_in_path};
-use std::{io::*, process::Command};
+use crate::{
+    builtins::{Shell, ShellCommandTypes},
+    error::ShellError,
+    parser::parse_command,
+};
+use std::{
+    io::{stdout, Write},
+    path::PathBuf,
+};
 
-fn handle_exit(args: &Vec<&str>) {
-    let code = args.join(" ").trim().parse().unwrap_or(0);
-    std::process::exit(code);
+#[allow(dead_code)]
+enum CommandOutput {
+    // for commands that succeed but produce no output like (cd)
+    Success,
+    // for commands that produce output like (type)
+    Text(String),
+    // for commands that produce path output like (pwd)
+    Path(PathBuf),
+    // for when commands fail
+    Error(ShellError),
+}
+
+#[derive(Debug)]
+pub struct ShellCommand {
+    plain_command: String,
+    args: Vec<String>,
+}
+
+impl ShellCommand {
+    pub fn new(plain_command: String, args: Vec<String>) -> ShellCommand {
+        ShellCommand {
+            plain_command,
+            args,
+        }
+    }
+}
+
+/// Reading raw input
+///
+/// we don't have any validation nor operations on
+/// this function. we only return the user's input
+/// whether it's a valid command or not.
+///
+/// Issues:
+///  - Should read_command be implemented within Shell?
+///  - Add empty line as ShellError variant ?
+///
+/// # Example
+/// ```bash
+/// > cd /directory
+/// > pwd
+/// > /directory
+///
+/// ```
+///
+fn read_input() -> Result<String, ShellError> {
+    let mut command_args = String::new();
+    std::io::stdin().read_line(&mut command_args)?;
+    let command_args = command_args.trim().to_string();
+    Ok(command_args)
+}
+
+///
+/// Execute command
+///
+fn execute_command(shell: &mut Shell, command: ShellCommand) -> Result<CommandOutput, ShellError> {
+    let shell_command_type: ShellCommandTypes =
+        match ShellCommandTypes::from_str(&command.plain_command) {
+            Some(cmd_type) => cmd_type,
+            None => return Err(ShellError::CommandNotFound(command.plain_command)),
+        };
+
+    match shell_command_type {
+        ShellCommandTypes::Cd => {
+            shell.cd(&command.args.concat())?;
+            return Ok(CommandOutput::Success);
+        }
+        ShellCommandTypes::Pwd => {
+            let path = shell.pwd()?;
+            return Ok(CommandOutput::Path(path.clone()));
+        }
+        ShellCommandTypes::Type => {
+            let cmd = shell.get_type(&command.args.concat())?;
+            return Ok(CommandOutput::Text(cmd));
+        }
+        _ => {
+            return Err(ShellError::CommandNotFound(command.plain_command));
+        }
+    }
 }
 
 pub fn run() {
-    let mut shell: Shell = Shell::new().unwrap();
+    #[allow(unused)]
+    let mut shell: Shell = match Shell::new() {
+        Ok(shell) => shell,
+        Err(e) => {
+            eprintln!("failed to init shell: {}", e);
+            return;
+        }
+    };
+
     loop {
         print!("$ ");
         stdout().flush().unwrap();
 
-        let stdin = stdin();
-        let mut input = String::new();
-        stdin.read_line(&mut input).unwrap();
-        let input: Vec<_> = input.split_whitespace().map(|x| x.trim()).collect();
+        let raw_command = match read_input() {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("error reading input: {}", e);
+                return;
+            }
+        };
 
-        if input.is_empty() {
-            continue;
-        }
-        let cmd = input[0];
-        let args: Vec<&str> = input[1..].to_vec();
+        let shell_command = match parse_command(raw_command) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("error parsing input: {}", e);
+                return;
+            }
+        };
 
-        match cmd {
-            "pwd" => shell.pwd(),
-            "exit" => handle_exit(&args),
-            "echo" => println!("{}", args.join(" ")),
-            "cd" => shell.cd(&args.join("")).unwrap(),
-            "type" => shell.type_s(&args),
-            _ => match find_in_path(cmd) {
-                Some(path) => {
-                    if Command::new(path).args(&args).status().is_err() {
-                        println!("{}: command not found", cmd);
+        match execute_command(&mut shell, shell_command) {
+            Ok(cmd_output) => {
+                match cmd_output {
+                    CommandOutput::Success => {}
+                    CommandOutput::Text(text) => {
+                        println!("{}", text);
+                    }
+                    CommandOutput::Path(path) => {
+                        println!("{}", path.display());
+                    }
+                    CommandOutput::Error(e) => {
+                        // not sure about this error yet!
+                        eprintln!("error {}", e);
                     }
                 }
-                None => println!("{}: command not found", cmd),
-            },
+            }
+            Err(e) => {
+                println!("{}", e);
+            }
         }
     }
 }

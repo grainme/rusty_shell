@@ -10,14 +10,16 @@ use std::fmt::Display;
 pub enum ShellError {
     /// Returned when trying to access a directory that doesn't exist
     DirectoryNotFound,
-    /// Returned when a file operation fails because the user lacks required permissions
+    /// Returned when the operation lacked the necessary privileges to complete.
     PermissionDenied,
     /// Returned when trying to access a file that doesn't exist
     FileNotFound,
     /// Returned when the path used is not a valid one
     InvalidPath,
     /// Returned when a command execution fails because the command was not found in PATH
-    CommandNotFound,
+    CommandNotFound(String),
+    /// Returned when a command parsing fails
+    CommandParsingFailed,
     /// Returned when an I/O operation fails
     IoError(std::io::Error),
 }
@@ -28,15 +30,35 @@ impl From<std::io::Error> for ShellError {
     }
 }
 
+impl ShellError {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ShellError::DirectoryNotFound => "Directory not found",
+            ShellError::PermissionDenied => "Permission denied",
+            ShellError::FileNotFound => "File not found",
+            ShellError::InvalidPath => "Invalid path",
+            ShellError::CommandNotFound(_) => "Command not found",
+            Self::CommandParsingFailed => "command parsing failed",
+            ShellError::IoError(_) => "I/O error",
+        }
+    }
+}
+
 impl Display for ShellError {
+    /// Shows a human-readable description of the `ShellError`.
+    ///
+    /// This is similar to `impl Display for ErrorKind`.
+    ///
+    /// # Examples
+    /// ```
+    /// use std::io::ErrorKind;
+    /// assert_eq!("permission denied", ErrorKind::PermissionDenied.to_string());
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ShellError::DirectoryNotFound => write!(f, "Directory not found"),
-            ShellError::PermissionDenied => write!(f, "Permission denied"),
-            ShellError::FileNotFound => write!(f, "File not found"),
-            ShellError::InvalidPath => write!(f, "Invalid path"),
-            ShellError::CommandNotFound => write!(f, "Command not found"),
-            ShellError::IoError(e) => write!(f, "I/O Error: {}", e),
+            Self::IoError(e) => write!(f, "{}", e),
+            Self::CommandNotFound(cmd) => write!(f, "{}: {}", self.as_str(), cmd),
+            _ => f.write_str(self.as_str()),
         }
     }
 }
