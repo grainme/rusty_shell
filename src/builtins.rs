@@ -37,13 +37,11 @@ pub enum ShellCommandTypes {
     /// cd: Change current directory
     Cd,
     /// ls: List directory contents (unimplemented)
-    Ls,
-    /// echo: Display text (unimplemented)
     Echo,
-    /// cat: Display file contents (unimplemented)
-    Cat,
     /// type: Show command type information
     Type,
+    // exit: quits the shell (with a status code)
+    Exit,
 }
 
 impl ShellCommandTypes {
@@ -59,10 +57,9 @@ impl ShellCommandTypes {
         match command {
             "pwd" => Some(ShellCommandTypes::Pwd),
             "cd" => Some(ShellCommandTypes::Cd),
-            "cat" => Some(ShellCommandTypes::Cat),
-            "ls" => Some(ShellCommandTypes::Ls),
             "type" => Some(ShellCommandTypes::Type),
             "echo" => Some(ShellCommandTypes::Echo),
+            "exit" => Some(ShellCommandTypes::Exit),
             _ => None,
         }
     }
@@ -153,5 +150,17 @@ impl Shell {
                 None => Err(ShellError::CommandNotFound(option.to_string())),
             }
         }
+    }
+
+    /// docs needed - todo
+    ///
+    ///
+    pub fn exit(&self, code: i32) -> ! {
+        std::process::exit(code);
+    }
+
+    /// docs needed - todo
+    pub fn echo(&self, arg: String) -> String {
+        arg
     }
 }

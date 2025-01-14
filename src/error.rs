@@ -33,13 +33,13 @@ impl From<std::io::Error> for ShellError {
 impl ShellError {
     pub fn as_str(&self) -> &'static str {
         match self {
-            ShellError::DirectoryNotFound => "Directory not found",
-            ShellError::PermissionDenied => "Permission denied",
-            ShellError::FileNotFound => "File not found",
-            ShellError::InvalidPath => "Invalid path",
-            ShellError::CommandNotFound(_) => "Command not found",
+            ShellError::DirectoryNotFound => "directory not found",
+            ShellError::PermissionDenied => "permission denied",
+            ShellError::FileNotFound => "file not found",
+            ShellError::InvalidPath => "invalid path",
+            ShellError::CommandNotFound(_) => "not found",
             Self::CommandParsingFailed => "command parsing failed",
-            ShellError::IoError(_) => "I/O error",
+            ShellError::IoError(_) => "i/o error",
         }
     }
 }
@@ -57,7 +57,7 @@ impl Display for ShellError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::IoError(e) => write!(f, "{}", e),
-            Self::CommandNotFound(cmd) => write!(f, "{}: {}", self.as_str(), cmd),
+            Self::CommandNotFound(cmd) => write!(f, "{}: {}", cmd, self.as_str()),
             _ => f.write_str(self.as_str()),
         }
     }

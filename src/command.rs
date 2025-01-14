@@ -94,14 +94,23 @@ fn execute_command(shell: &mut Shell, command: ShellCommand) -> Result<CommandOu
             let cmd = shell.get_type(&command.args.concat())?;
             return Ok(CommandOutput::Text(cmd));
         }
-        _ => {
-            return Err(ShellError::CommandNotFound(command.plain_command));
+        ShellCommandTypes::Echo => {
+            let arg = command.args.join(" ");
+            return Ok(CommandOutput::Text(shell.echo(arg)));
+        }
+        ShellCommandTypes::Exit => {
+            let code = match command.args.concat().parse::<i32>() {
+                Ok(v) => v,
+                Err(_) => {
+                    return Err(ShellError::CommandParsingFailed);
+                }
+            };
+            shell.exit(code);
         }
     }
 }
 
 pub fn run() {
-    #[allow(unused)]
     let mut shell: Shell = match Shell::new() {
         Ok(shell) => shell,
         Err(e) => {
