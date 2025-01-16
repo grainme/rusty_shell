@@ -70,6 +70,7 @@ impl ShellCommandTypes {
             "type" => Some(ShellCommandTypes::Type),
             "echo" => Some(ShellCommandTypes::Echo),
             "exit" => Some(ShellCommandTypes::Exit),
+            "cat" => Some(ShellCommandTypes::Cat),
             "ls" => Some(ShellCommandTypes::Ls),
             "clear" => Some(ShellCommandTypes::Clear),
             _ => None,

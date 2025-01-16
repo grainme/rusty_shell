@@ -65,6 +65,5 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
         return Err(ShellError::UnmatchedQuote);
     }
 
-    // parsing arguments
     Ok(ShellCommand::new(command, args))
 }
