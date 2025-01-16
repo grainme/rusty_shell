@@ -25,41 +25,46 @@ type RawCommand = String;
 ///
 pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
     if input.trim().is_empty() {
-        return Err(ShellError::CommandParsingFailed);
+        return Err(ShellError::EmptyCommand);
     }
 
-    let (cmd, args): (&str, &str) = match input.as_str().split_once(" ") {
-        Some(val) => val,
-        None => (input.as_str(), ""),
-    };
+    let mut chars = input.chars().peekable();
+    let mut command = String::new();
+    let mut args = Vec::new();
+    let mut current_token = String::new();
+    let mut in_quotes = false;
 
-    let mut is_inside = false;
-    let mut is_space = false;
-    let mut word = String::new();
-    let mut arguments: Vec<String> = Vec::new();
-
-    for c in args.chars().collect::<Vec<char>>() {
-        if c == '\'' {
-            is_inside = !is_inside;
-            continue;
+    // parsing command
+    while let Some(&c) = chars.peek() {
+        if c.is_whitespace() && !command.is_empty() {
+            chars.next();
+            break;
         }
-        if is_inside {
-            word.push(c);
-        } else {
-            if c.is_whitespace() && is_space {
-                continue;
-            } else if c.is_whitespace() {
-                arguments.push(word.trim().to_string());
-                word.clear();
-                is_space = true;
-            } else {
-                is_space = false;
+        command.push(chars.next().unwrap());
+    }
+
+    while let Some(c) = chars.next() {
+        match c {
+            '\'' => in_quotes = !in_quotes,
+            ' ' if !in_quotes => {
+                if !current_token.is_empty() {
+                    args.push(current_token.clone());
+                    current_token.clear();
+                }
             }
-            word.push(c);
+            _ => current_token.push(c),
         }
     }
-    if !word.is_empty() {
-        arguments.push(word.trim().to_string());
+
+    if !current_token.is_empty() {
+        args.push(current_token);
     }
-    Ok(ShellCommand::new(cmd.to_string(), arguments))
+
+    // in case opened but not closed
+    if in_quotes {
+        return Err(ShellError::UnmatchedQuote);
+    }
+
+    // parsing arguments
+    Ok(ShellCommand::new(command, args))
 }
