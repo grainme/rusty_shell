@@ -33,6 +33,7 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
     let mut args = Vec::new();
     let mut current_token = String::new();
     let mut in_quotes = false;
+    let mut in_double_quotes = false;
 
     // parsing command
     while let Some(&c) = chars.peek() {
@@ -45,8 +46,9 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
 
     while let Some(c) = chars.next() {
         match c {
-            '\'' => in_quotes = !in_quotes,
-            ' ' if !in_quotes => {
+            '\'' if !in_double_quotes => in_quotes = !in_quotes,
+            '\"' => in_double_quotes = !in_double_quotes,
+            ' ' if !in_quotes && !in_double_quotes => {
                 if !current_token.is_empty() {
                     args.push(current_token.clone());
                     current_token.clear();
