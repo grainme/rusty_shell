@@ -34,6 +34,7 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
     let mut current_token = String::new();
     let mut in_quotes = false;
     let mut in_double_quotes = false;
+    let mut backslahed = false;
 
     // parsing command
     while let Some(&c) = chars.peek() {
@@ -46,15 +47,19 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
 
     while let Some(c) = chars.next() {
         match c {
-            '\'' if !in_double_quotes => in_quotes = !in_quotes,
-            '\"' => in_double_quotes = !in_double_quotes,
-            ' ' if !in_quotes && !in_double_quotes => {
+            '\\' if !in_double_quotes && !in_quotes => backslahed = true,
+            '\'' if !in_double_quotes && !backslahed => in_quotes = !in_quotes,
+            '\"' if !in_quotes && !backslahed => in_double_quotes = !in_double_quotes,
+            ' ' if !in_quotes && !in_double_quotes && !backslahed => {
                 if !current_token.is_empty() {
                     args.push(current_token.clone());
                     current_token.clear();
                 }
             }
-            _ => current_token.push(c),
+            _ => {
+                backslahed = false;
+                current_token.push(c);
+            }
         }
     }
 
