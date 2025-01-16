@@ -22,6 +22,18 @@ pub enum ShellError {
     CommandParsingFailed,
     /// Returned when an I/O operation fails
     IoError(std::io::Error),
+    /// Returned when a builtin os method fails like(current_dir, set_current_dir)
+    OsError(std::io::Error),
+    /// Returned For non-zero exit codes
+    ExternalCommandFailed(i32),
+    /// Returned when a command is empty
+    EmptyCommand,
+    /// Returned when trying to access a file or directory that doesn't exist like with (cd)
+    FileAndDirectoryNotFound(String, String),
+    /// Returned when we fail to to determine HOME path
+    HomeDirNotFound,
+    // TODO:
+    UnknownEnvVariable,
 }
 
 impl From<std::io::Error> for ShellError {
@@ -38,8 +50,14 @@ impl ShellError {
             ShellError::FileNotFound => "file not found",
             ShellError::InvalidPath => "invalid path",
             ShellError::CommandNotFound(_) => "not found",
-            Self::CommandParsingFailed => "command parsing failed",
+            ShellError::CommandParsingFailed => "command parsing failed",
             ShellError::IoError(_) => "i/o error",
+            ShellError::OsError(_) => "os error",
+            ShellError::ExternalCommandFailed(_) => "external command failed",
+            ShellError::EmptyCommand => "empty command",
+            ShellError::FileAndDirectoryNotFound(_, _) => "No such file or directory",
+            ShellError::HomeDirNotFound => "Home dir not found",
+            ShellError::UnknownEnvVariable => "unkown env variable",
         }
     }
 }
@@ -58,6 +76,9 @@ impl Display for ShellError {
         match self {
             Self::IoError(e) => write!(f, "{}", e),
             Self::CommandNotFound(cmd) => write!(f, "{}: {}", cmd, self.as_str()),
+            Self::FileAndDirectoryNotFound(cmd, path) => {
+                write!(f, "{cmd}: {path}: {}", self.as_str())
+            }
             _ => f.write_str(self.as_str()),
         }
     }

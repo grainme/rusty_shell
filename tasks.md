@@ -9,3 +9,5 @@ Complete the documentation for execute_command function
 Make sure every function returns proper Results where needed
 
 implement exit (with status) - Done but needs doc
+
+cd - modifies self.current_dir to take path argument instead of the whole absolute path! - FIX

@@ -8,7 +8,7 @@
 
 use std::{env, path::Path};
 
-pub fn find_in_path(cmd: &str) -> Option<String> {
+pub fn search_bin(cmd: &str) -> Option<String> {
     let paths = env::var("PATH").ok()?;
 
     for dir in paths.split(":") {

@@ -33,8 +33,33 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
         None => (input.as_str(), ""),
     };
 
-    Ok(ShellCommand::new(
-        cmd.to_string(),
-        args.split_whitespace().map(String::from).collect(),
-    ))
+    let mut is_inside = false;
+    let mut is_space = false;
+    let mut word = String::new();
+    let mut arguments: Vec<String> = Vec::new();
+
+    for c in args.chars().collect::<Vec<char>>() {
+        if c == '\'' {
+            is_inside = !is_inside;
+            continue;
+        }
+        if is_inside {
+            word.push(c);
+        } else {
+            if c.is_whitespace() && is_space {
+                continue;
+            } else if c.is_whitespace() {
+                arguments.push(word.trim().to_string());
+                word.clear();
+                is_space = true;
+            } else {
+                is_space = false;
+            }
+            word.push(c);
+        }
+    }
+    if !word.is_empty() {
+        arguments.push(word.trim().to_string());
+    }
+    Ok(ShellCommand::new(cmd.to_string(), arguments))
 }
