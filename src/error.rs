@@ -35,7 +35,7 @@ pub enum ShellError {
     // TODO:
     UnknownEnvVariable,
     /// TODO:
-    UnmatchedQuote,
+    UnmatchedQuote(String),
 }
 
 impl From<std::io::Error> for ShellError {
@@ -60,7 +60,7 @@ impl ShellError {
             ShellError::FileAndDirectoryNotFound(_, _) => "No such file or directory",
             ShellError::HomeDirNotFound => "Home dir not found",
             ShellError::UnknownEnvVariable => "unkown env variable",
-            ShellError::UnmatchedQuote => "unmatched quote",
+            ShellError::UnmatchedQuote(_) => "unmatched quote",
         }
     }
 }

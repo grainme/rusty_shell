@@ -13,8 +13,5 @@ mod error;
 mod parser;
 
 fn main() {
-    let process = command::run();
-    if !process.is_ok() {
-        eprintln!("process failed to start");
-    }
+    let _process = command::run();
 }

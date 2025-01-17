@@ -9,12 +9,6 @@
 //! @author: @grainme
 //!
 
-use crate::{command::ShellCommand, error::ShellError};
-
-/// To make it clear that the argument of parse_command
-/// is a raw command instead of just `String`
-type RawCommand = String;
-
 /// Convert raw command into structured command
 ///
 /// Design Questions:
@@ -23,54 +17,115 @@ type RawCommand = String;
 /// Should it validate commands exist?
 /// Split on spaces or more complex parsing?
 ///
+use crate::{command::ShellCommand, error::ShellError};
+
+type RawCommand = String;
+
+#[derive(Debug)]
+pub enum ParseError {
+    UnmatchedSingleQuote,
+    UnmatchedDoubleQuote,
+    EmptyCommand,
+}
+
+impl From<ParseError> for ShellError {
+    fn from(error: ParseError) -> Self {
+        match error {
+            ParseError::UnmatchedSingleQuote => {
+                ShellError::UnmatchedQuote("single quote".to_string())
+            }
+            ParseError::UnmatchedDoubleQuote => {
+                ShellError::UnmatchedQuote("double quote".to_string())
+            }
+            ParseError::EmptyCommand => ShellError::EmptyCommand,
+        }
+    }
+}
+
 pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
     if input.trim().is_empty() {
-        return Err(ShellError::EmptyCommand);
+        return Err(ParseError::EmptyCommand.into());
     }
 
-    let mut chars = input.chars().peekable();
-    let mut command = String::new();
-    let mut args = Vec::new();
+    let mut tokens = Vec::new();
     let mut current_token = String::new();
-    let mut in_quotes = false;
+    let mut chars = input.chars().peekable();
+    let mut in_single_quotes = false;
     let mut in_double_quotes = false;
-    let mut backslahed = false;
-
-    // parsing command
-    while let Some(&c) = chars.peek() {
-        if c.is_whitespace() && !command.is_empty() {
-            chars.next();
-            break;
-        }
-        command.push(chars.next().unwrap());
-    }
 
     while let Some(c) = chars.next() {
         match c {
-            '\\' if !in_double_quotes && !in_quotes => backslahed = true,
-            '\'' if !in_double_quotes && !backslahed => in_quotes = !in_quotes,
-            '\"' if !in_quotes && !backslahed => in_double_quotes = !in_double_quotes,
-            ' ' if !in_quotes && !in_double_quotes && !backslahed => {
-                if !current_token.is_empty() {
-                    args.push(current_token.clone());
+            '\\' => {
+                if in_single_quotes {
+                    current_token.push('\\');
+                } else if in_double_quotes {
+                    if let Some(&next_char) = chars.peek() {
+                        match next_char {
+                            '$' | '`' | '"' | '\\' | '\n' => {
+                                chars.next();
+                                current_token.push(next_char);
+                            }
+                            _ => {
+                                current_token.push('\\');
+                                current_token.push(next_char);
+                                chars.next();
+                            }
+                        }
+                    } else {
+                        current_token.push('\\');
+                    }
+                } else {
+                    if let Some(&next_char) = chars.peek() {
+                        chars.next();
+                        current_token.push(next_char);
+                    } else {
+                        current_token.push('\\');
+                    }
+                }
+            }
+            '\'' => {
+                if in_double_quotes {
+                    current_token.push('\'');
+                } else {
+                    in_single_quotes = !in_single_quotes;
+                }
+            }
+            '"' => {
+                if in_single_quotes {
+                    current_token.push('"');
+                } else {
+                    in_double_quotes = !in_double_quotes;
+                }
+            }
+            c if c.is_whitespace() => {
+                if in_single_quotes || in_double_quotes {
+                    current_token.push(c);
+                } else if !current_token.is_empty() {
+                    tokens.push(current_token.clone());
                     current_token.clear();
                 }
             }
-            _ => {
-                backslahed = false;
-                current_token.push(c);
-            }
+            _ => current_token.push(c),
         }
     }
 
-    if !current_token.is_empty() {
-        args.push(current_token);
+    if in_single_quotes {
+        return Err(ParseError::UnmatchedSingleQuote.into());
+    }
+    if in_double_quotes {
+        return Err(ParseError::UnmatchedDoubleQuote.into());
     }
 
-    // in case opened but not closed
-    if in_quotes {
-        return Err(ShellError::UnmatchedQuote);
+    if !current_token.is_empty() {
+        tokens.push(current_token);
     }
+
+    if tokens.is_empty() {
+        return Err(ParseError::EmptyCommand.into());
+    }
+
+    let command = tokens.remove(0);
+    let args = tokens;
 
     Ok(ShellCommand::new(command, args))
 }
