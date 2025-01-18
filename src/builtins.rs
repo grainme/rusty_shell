@@ -25,7 +25,7 @@
 //! ```
 
 use crate::{
-    command::{CommandOutput, ShellCommand},
+    command::{self, CommandOutput, ShellCommand},
     environment::search_bin,
     error::ShellError,
 };
@@ -70,7 +70,7 @@ impl ShellCommandTypes {
             "type" => Some(ShellCommandTypes::Type),
             "echo" => Some(ShellCommandTypes::Echo),
             "exit" => Some(ShellCommandTypes::Exit),
-            // "cat" => Some(ShellCommandTypes::Cat),
+            //"cat" => Some(ShellCommandTypes::Cat),
             "ls" => Some(ShellCommandTypes::Ls),
             "clear" => Some(ShellCommandTypes::Clear),
             _ => None,
@@ -99,6 +99,10 @@ impl Shell {
         Ok(Shell {
             current_dir: env::current_dir()?,
         })
+    }
+
+    pub fn execute_external(&self, command: ShellCommand) -> Result<CommandOutput, ShellError> {
+        command.execute().map(|_| CommandOutput::Success)
     }
 
     pub fn execute_command(&mut self, command: ShellCommand) -> Result<CommandOutput, ShellError> {
@@ -207,16 +211,16 @@ impl Shell {
     /// echo
     /// docs needed - todo
     ///
-    pub fn echo(&self, arg: String) -> Result<CommandOutput, ShellError> {
-        Command::new("echo").arg(arg).status()?;
+    pub fn echo(&self, command: ShellCommand) -> Result<CommandOutput, ShellError> {
+        command.execute()?;
         Ok(CommandOutput::Success)
     }
 
     /// ls
     /// docs needed
     ///
-    pub fn ls(&self) -> Result<CommandOutput, ShellError> {
-        Command::new("ls").status()?;
+    pub fn ls(&self, command: ShellCommand) -> Result<CommandOutput, ShellError> {
+        command.execute()?;
         Ok(CommandOutput::Success)
     }
 
@@ -226,18 +230,7 @@ impl Shell {
     }
 
     pub fn cat(&self, command: ShellCommand) -> Result<CommandOutput, ShellError> {
-        Command::new("cat").args(command.args).status()?;
-        Ok(CommandOutput::Success)
-    }
-
-    pub fn execute_external(&self, command: ShellCommand) -> Result<CommandOutput, ShellError> {
-        Command::new(&command.plain_command)
-            .args(&command.args)
-            .status()
-            .map_err(|e| match e.kind() {
-                ErrorKind::NotFound => ShellError::CommandNotFound(command.plain_command),
-                _ => ShellError::IoError(e),
-            })?;
+        command.execute()?;
         Ok(CommandOutput::Success)
     }
 
@@ -252,34 +245,13 @@ impl Shell {
         match cmd_type {
             ShellCommandTypes::Cd => {
                 self.cd(&command.args.concat())?;
-                return Ok(CommandOutput::Success);
+                Ok(CommandOutput::Success)
             }
             ShellCommandTypes::Pwd => {
                 let path = self.pwd()?;
-                return Ok(CommandOutput::Path(path.clone()));
+                Ok(CommandOutput::Path(path))
             }
-            ShellCommandTypes::Type => {
-                return Ok(self.type_(command)?);
-            }
-            ShellCommandTypes::Echo => {
-                let arg = command.args.join(" ");
-                self.echo(arg)?;
-                return Ok(CommandOutput::Success);
-            }
-            // Not complete!
-            ShellCommandTypes::Ls => {
-                // TODO: change this to something else later
-                self.ls()?;
-                return Ok(CommandOutput::Success);
-            }
-            ShellCommandTypes::Cat => {
-                self.cat(command)?;
-                return Ok(CommandOutput::Success);
-            }
-            ShellCommandTypes::Clear => {
-                self.clear()?;
-                return Ok(CommandOutput::Success);
-            }
+            ShellCommandTypes::Type => self.type_(command),
             ShellCommandTypes::Exit => {
                 let code = command
                     .args
@@ -288,6 +260,10 @@ impl Shell {
                     .map_err(|_| ShellError::CommandParsingFailed)?;
                 self.exit(code);
             }
+            ShellCommandTypes::Echo => self.echo(command),
+            ShellCommandTypes::Ls => self.ls(command),
+            ShellCommandTypes::Cat => self.cat(command),
+            ShellCommandTypes::Clear => self.clear(),
         }
     }
 }

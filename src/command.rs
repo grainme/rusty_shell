@@ -11,6 +11,7 @@
 
 use crate::{builtins::Shell, error::ShellError, parser::parse_command};
 use std::{
+    fs::File,
     io::{stdout, Write},
     path::PathBuf,
 };
@@ -26,14 +27,41 @@ pub enum CommandOutput {
 pub struct ShellCommand {
     pub plain_command: String,
     pub args: Vec<String>,
+    pub stdout_redirect: Option<String>, // Store the output file path
 }
 
 impl ShellCommand {
-    pub fn new(plain_command: String, args: Vec<String>) -> ShellCommand {
+    #[allow(dead_code)]
+    pub fn new(
+        plain_command: String,
+        args: Vec<String>,
+        stdout_redirect: Option<String>,
+    ) -> ShellCommand {
         ShellCommand {
             plain_command,
             args,
+            stdout_redirect,
         }
+    }
+
+    pub fn execute(&self) -> Result<(), ShellError> {
+        let mut command = std::process::Command::new(&self.plain_command);
+        command.args(&self.args);
+
+        if let Some(path) = &self.stdout_redirect {
+            let file = File::create(path)?;
+
+            command.stdout(std::process::Stdio::from(file));
+            command.stderr(std::process::Stdio::inherit());
+        } else {
+            command.stdout(std::process::Stdio::inherit());
+            command.stderr(std::process::Stdio::inherit());
+        }
+
+        let mut child = command.spawn()?;
+        child.wait()?;
+
+        Ok(())
     }
 }
 
