@@ -106,12 +106,10 @@ impl Shell {
     }
 
     pub fn execute_command(&mut self, command: ShellCommand) -> Result<CommandOutput, ShellError> {
-        // Early return for empty commands
         if command.plain_command.is_empty() {
             return Err(ShellError::EmptyCommand);
         }
 
-        // Try to execute as built-in command first
         match ShellCommandTypes::from_str(&command.plain_command) {
             Some(cmd_type) => self.execute_builtin(cmd_type, command),
             None => self.execute_external(command),

@@ -58,10 +58,16 @@ impl ShellCommand {
             command.stderr(std::process::Stdio::inherit());
         }
 
-        let mut child = command.spawn()?;
-        child.wait()?;
-
-        Ok(())
+        match command.spawn() {
+            Ok(mut child) => {
+                child.wait()?;
+                Ok(())
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Err(ShellError::CommandNotFound(self.plain_command.clone()))
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 }
 
