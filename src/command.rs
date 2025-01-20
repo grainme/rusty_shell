@@ -12,9 +12,8 @@
 use crate::{builtins::Shell, error::ShellError, parser::parse_command};
 use std::{
     fs::File,
-    io::{self, stdout, Write},
+    io::{stdout, Write},
     path::PathBuf,
-    process::{Command, Stdio},
 };
 
 #[derive(Debug)]
@@ -32,6 +31,7 @@ pub struct ShellCommand {
     pub stderr_redirect: Option<String>,
 }
 
+#[allow(dead_code)]
 impl ShellCommand {
     pub fn new(
         plain_command: String,
@@ -57,7 +57,6 @@ impl ShellCommand {
         }
 
         if let Some(path) = &self.stderr_redirect {
-            // Ensure parent directory exists
             if let Some(parent) = std::path::Path::new(path).parent() {
                 std::fs::create_dir_all(parent)?;
             }
@@ -65,24 +64,19 @@ impl ShellCommand {
             command.stderr(std::process::Stdio::from(file));
         }
 
-        let status = command
-            .spawn()
-            .map_err(|e| {
+        match command.spawn() {
+            Ok(mut child) => {
+                let _status = child.wait()?;
+                Ok(())
+            }
+            Err(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
-                    ShellError::CommandNotFound(self.plain_command.clone())
+                    Err(ShellError::CommandNotFound(self.plain_command.clone()))
                 } else {
-                    ShellError::IoError(e)
+                    Err(ShellError::IoError(e))
                 }
-            })?
-            .wait()?;
-
-        if !status.success() {
-            if let Some(code) = status.code() {
-                return Err(ShellError::ExternalCommandFailed(code));
             }
         }
-
-        Ok(())
     }
 }
 
