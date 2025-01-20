@@ -25,16 +25,17 @@
 //! ```
 
 use crate::{
-    command::{self, CommandOutput, ShellCommand},
+    command::{CommandOutput, ShellCommand},
     environment::search_bin,
     error::ShellError,
 };
-use std::{env, io::ErrorKind, path::PathBuf, process::Command};
+use std::{env, path::PathBuf, process::Command};
 
 /// Built-in shell commands supported by this implementation.
 ///
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[non_exhaustive]
+#[allow(dead_code)]
 pub enum ShellCommandTypes {
     /// pwd: Print current working directory
     Pwd,

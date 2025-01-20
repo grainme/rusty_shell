@@ -52,7 +52,8 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
     let mut chars = input.chars().peekable();
     let mut in_single_quotes = false;
     let mut in_double_quotes = false;
-    let mut redirect_to = None;
+    let mut stdout_redirect = None;
+    let mut stderr_redirect = None;
 
     while let Some(c) = chars.next() {
         match c {
@@ -116,18 +117,25 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
     if in_double_quotes {
         return Err(ParseError::UnmatchedDoubleQuote.into());
     }
-
     if !current_token.is_empty() {
         tokens.push(current_token);
     }
-
     if tokens.is_empty() {
         return Err(ParseError::EmptyCommand.into());
     }
 
     while let Some(token) = tokens.iter().position(|t| t == ">" || t == "1>") {
         if token + 1 < tokens.len() {
-            redirect_to = Some(tokens[token + 1].clone());
+            stdout_redirect = Some(tokens[token + 1].clone());
+            tokens.drain(token..=token + 1);
+        } else {
+            return Err(ShellError::EmptyCommand);
+        }
+    }
+
+    while let Some(token) = tokens.iter().position(|t| t == "2>") {
+        if token + 1 < tokens.len() {
+            stderr_redirect = Some(tokens[token + 1].clone());
             tokens.drain(token..=token + 1);
         } else {
             return Err(ShellError::EmptyCommand);
@@ -137,6 +145,7 @@ pub fn parse_command(input: RawCommand) -> Result<ShellCommand, ShellError> {
     Ok(ShellCommand {
         plain_command: tokens[0].clone(),
         args: tokens[1..].to_vec(),
-        stdout_redirect: redirect_to,
+        stdout_redirect,
+        stderr_redirect,
     })
 }

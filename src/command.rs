@@ -12,8 +12,9 @@
 use crate::{builtins::Shell, error::ShellError, parser::parse_command};
 use std::{
     fs::File,
-    io::{stdout, Write},
+    io::{self, stdout, Write},
     path::PathBuf,
+    process::{Command, Stdio},
 };
 
 #[derive(Debug)]
@@ -27,20 +28,22 @@ pub enum CommandOutput {
 pub struct ShellCommand {
     pub plain_command: String,
     pub args: Vec<String>,
-    pub stdout_redirect: Option<String>, // Store the output file path
+    pub stdout_redirect: Option<String>,
+    pub stderr_redirect: Option<String>,
 }
 
 impl ShellCommand {
-    #[allow(dead_code)]
     pub fn new(
         plain_command: String,
         args: Vec<String>,
         stdout_redirect: Option<String>,
+        stderr_redirect: Option<String>,
     ) -> ShellCommand {
         ShellCommand {
             plain_command,
             args,
             stdout_redirect,
+            stderr_redirect,
         }
     }
 
@@ -50,24 +53,36 @@ impl ShellCommand {
 
         if let Some(path) = &self.stdout_redirect {
             let file = File::create(path)?;
-
             command.stdout(std::process::Stdio::from(file));
-            command.stderr(std::process::Stdio::inherit());
-        } else {
-            command.stdout(std::process::Stdio::inherit());
-            command.stderr(std::process::Stdio::inherit());
         }
 
-        match command.spawn() {
-            Ok(mut child) => {
-                child.wait()?;
-                Ok(())
+        if let Some(path) = &self.stderr_redirect {
+            // Ensure parent directory exists
+            if let Some(parent) = std::path::Path::new(path).parent() {
+                std::fs::create_dir_all(parent)?;
             }
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                Err(ShellError::CommandNotFound(self.plain_command.clone()))
-            }
-            Err(e) => Err(e.into()),
+            let file = File::create(path)?;
+            command.stderr(std::process::Stdio::from(file));
         }
+
+        let status = command
+            .spawn()
+            .map_err(|e| {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    ShellError::CommandNotFound(self.plain_command.clone())
+                } else {
+                    ShellError::IoError(e)
+                }
+            })?
+            .wait()?;
+
+        if !status.success() {
+            if let Some(code) = status.code() {
+                return Err(ShellError::ExternalCommandFailed(code));
+            }
+        }
+
+        Ok(())
     }
 }
 
